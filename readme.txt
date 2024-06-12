@@ -5,7 +5,7 @@ The present Python code calculates the effect of the diffusion on the state of c
    battery in a sphere as a particle where Z is a function of distance and time Z= f(x,t).
    The governing equation, a Partial Differential Equation (PDE) has to be solved which is written as:
    
-   PDE:
+   PDE: includes derivatives concerning two different variables, a spatial variable and a time variable
       Td*dZ/dt = d2Z/dx2  where d2Z/dx2 is the second partial derivative in terms of the distance x from center
    Boundary conditions:   
       dZ/dx at center = 0
