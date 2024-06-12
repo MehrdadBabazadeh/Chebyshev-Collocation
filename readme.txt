@@ -1,4 +1,4 @@
-Please download both programs to be able to run the Chebyshev Collocation method to solve 
+Please download both Python programs to be able to run the Chebyshev Collocation method to solve 
 Diffusion partial differential equation.
 -------------------------------------------------------------------------------------   
 The present Python code calculates the effect of the diffusion on the state of charge (Z) in a li-ion 
