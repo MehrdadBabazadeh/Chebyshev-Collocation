@@ -40,47 +40,67 @@ from MB_Time_Current_Boundary import Time_Current_Boundary
 import os
 os.system('cls' if os.name == 'nt' else 'clear')   # To clear terminal
 
-#Settings--------------------------------------------------------------
+# Settings --------------------------------------------------------------
 N_collocation = 6
-Np = N_collocation - 1 
+Np = N_collocation - 1  # Number of internal collocation points
 
-dt= 1                # time step
-tfinal= 3600 *6      # 360*5 ; \With small values batery may not be chsarged
+dt = 1  # Time step
+tfinal = 3600 * 6  # Simulation time (seconds)
 
-Td = 580             # 580 ; Diffusion time constant
-capacity= 4.9 * 3600   # 4.9 [A.h] ==> [4.9* 3600 A.sec]
+Td = 580  # Diffusion time constant
+capacity = 4.9 * 3600  # Capacity in Ampere-seconds
 
-#SoC initial--------------------------------------------------------------
-Init = 0.5  # Initial condition of SoC only at collocation points, not in the center and surface 
-Z1= np.ones(Np-1) * Init
-Z = np.ones(Np+1) * Init
+# Initial State of Charge (SoC) --------------------------------------------------------------
+Init = 0.5  # Initial SoC (uniform across internal points)
+Z1 = np.ones(Np - 1) * Init  # SoC at internal points
+Z = np.ones(Np + 1) * Init  # SoC including surface points (Z[0] and Z[Np])
 
-SoC_Surface= Z[Np]
-surface_flux = 0
-Z0=Z.copy()
-SoC_History=[]
-Zbar_History=[]
-ZSurface_History=[]
-ZDiff_History=[]
-current= 0
-Amplitude =10
-dZ0=np.zeros(Np+1)
+SoC_Surface = Z[Np]  # Initial surface SoC
+surface_flux = 0  # Initial surface flux
+Z0 = Z.copy()  # Copy of initial SoC for calculations
+SoC_History = []  # List to store SoC history at each time step
+Zbar_History = []  # List to store average SoC history
+ZSurface_History = []  # List to store surface SoC history
+ZDiff_History = []  # List to store SoC difference between surface and average
+current = 0  # Initial current
+Amplitude = 10  # Amplitude for current profile (for future implementation)
+dZ0 = np.zeros(Np + 1)  # Array to store initial derivative of SoC
 
-#time definition--------------------------------------------------------------
-if dt>=1:
-  t = np.linspace(0, tfinal, tfinal) 
+# Time definition --------------------------------------------------------------
+if dt >= 1:
+    t = np.linspace(0, tfinal, tfinal)  # Evenly spaced time points
 else:
-  t = np.arange(0, tfinal + dt, dt)
-#--------------------------------------------------------------
+    t = np.arange(0, tfinal + dt, dt)  # Time points with specified step size
 
+# Function to generate Chebyshev collocation points, differentiation matrices, and inverse matrix
 def Xn_D_D2(r_center=0, r_surface=1, P = Np):
+  """
+   This function generates Chebyshev collocation points, differentiation matrices,
+   and the inverse coefficient matrix for the Chebyshev collocation method.
 
-  Sn=np.zeros(P+1)
-  Xn=np.zeros(P+1)
-  D = np.zeros((P+1, P+1))
-  Dx=np.zeros((P+1, P+1))
+   Args:
+      r_center (float, optional): Center of the domain (default: 0).
+      r_surface (float, optional): Surface of the domain (default: 1).
+      P (int, optional): Number of internal collocation points (default: Np).
 
-  Xn[0]=1  
+   Returns:
+      tuple: A tuple containing the following elements:
+         D (ndarray): Differentiation matrix.
+         Dx (ndarray): First derivative matrix.
+         Dm (ndarray): Second derivative matrix (diffusion coefficient matrix).
+         Xn (ndarray): Chebyshev collocation points in the interval [-1, 1].
+         r_vals (ndarray): Chebyshev collocation points transformed to the actual domain.
+         A1 (ndarray): Inverse coefficient matrix for the diffusion equation.
+  """
+
+  Sn = np.zeros(P + 1)  # Chebyshev nodes
+  Xn = np.zeros(P + 1)  # Collocation points transformed to [-1, 1]
+  D = np.zeros((P + 1, P + 1))  # Differentiation matrix
+  Dx = np.zeros((P + 1, P + 1))  # First derivative matrix
+
+  Xn[0] = 1  # First collocation point is always 1
+
+# Generate Chebyshev nodes in [-1, 1]  
   for j in range (0,P+1):
     Sn[j] = -(np.cos(j*np.pi/Np))
     Xn[j] = 1-0.5*(1+ np.cos(j*np.pi/Np))   # I have subtracted from 1 to show points as starting from 0 to 1
@@ -88,9 +108,9 @@ def Xn_D_D2(r_center=0, r_surface=1, P = Np):
   for i in range (0,P+1):
     for j in range (0,P+1):  
       if (i==j and i==0):
-         D[i][j]= -(2*P**2+1)/6
+         D[i][j]= -(2*P**2+1)/6  # Special case for D(f)(Xn[0]
       elif (i==j and i==P):
-         D[i][j]= (2*P**2+1)/6
+         D[i][j]= (2*P**2+1)/6   # Special case for D(f)(Xn[P])
       elif (i==j and i<=P-1):
          D[i][j]=round (-Sn[i]/(2*(1-Sn[i]**2)),4)
       else:
@@ -106,25 +126,21 @@ def Xn_D_D2(r_center=0, r_surface=1, P = Np):
          
          D[i][j] = (ci/cj*(-1)**(i+j)/(Sn[i]-Sn[j]))   
 
-  D = D*2   #Derivative Matrix
-  #print("D:", D)
+  D = D * 2  # Derivative Matrix
+  # print("D:", D)  # For debugging
   # Transform collocation points to actual radius
   r_vals = Sn * (r_surface - r_center) + r_center
-
   Dx[1:Np][:] = D[1:Np][:]
-  #print("Dx:", Dx)
+  # print("Dx:", Dx)  # For debugging
   Dm = D @ Dx
-  
-  A1 = np.eye(Np+1)- Dm*dt/Td
+  A1 = np.eye(Np+1) - Dm*dt/Td
   A1 = np.linalg.inv(A1)
-  
   # Transform collocation points to actual radius
   r_vals = Xn * (r_surface - r_center) + r_center
-  
-  print("________________________________________________________________________________________")    
+  print("________________________________________________________________________________________")
   print("Number of Collocation points:", Np+1)
   print("Xn (Collocation points):", Xn)
-  print("________________________________________________________________________________________")    
+  print("________________________________________________________________________________________")
 
   return D, Dx, Dm, Xn, r_vals, A1
 
