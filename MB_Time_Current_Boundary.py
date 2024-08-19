@@ -28,8 +28,8 @@ class Time_Current_Boundary:
         self.Amplitude=Amplitude
         
     def FCN_Signal(self, Amplitude):
-        period = self.tfinal / 4  # Adjust this to control the signal frequency
-        self.signal = np.where(self.t % period < 0.5 * period, Amplitude, -1 * Amplitude)        
+        period = self.tfinal / 3  # Adjust this to control the signal frequency
+        self.signal = np.where(self.t % period < 0.5 * period, -Amplitude, 1 * Amplitude)        
         return self.signal
 
     def update_Boundary(self,current,Td,capacity):

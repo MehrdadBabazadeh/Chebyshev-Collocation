@@ -1,0 +1,2 @@
+[1] Fan, Chuanxin, et al. "Data-driven identification of lithium-ion batteries: A nonlinear equivalent circuit model with diffusion dynamics." Applied Energy 321 (2022): 119336.
+[2] Binous, Housam, Abdullah A. Shaikh, and Ahmed Bellagi. "Chebyshev orthogonal collocation technique to solve transport phenomena problems with matlab® and mathematica." Computer Applications in Engineering Education 23.3 (2015): 422-431.
